@@ -2,9 +2,20 @@
 
 # THIS SCRIPT REDUCES A SIZE OF PDF-FILE
 
+# DEPENDENCIES:
+# The script will work properly if you have the following
+# utilities installed:
+# - pdftocairo
+# - ImageMagick and/or img2pdf
+
 # OPTIONS:
-# -r to set resolution of page images
+# -r <resolution in dpi> to set resolution of page images
 #    default resolution is 72
+# -s <file size in bytes> to set the maximum file size. 
+#    The script will process all the files whose size exceeds
+#    the maximum size.
+#    The default value is 3000000 bytes (files of 3000000 bytes 
+#    in size and less will not be processed by default).
 
 # Constants 
 SCRIPT_NAME="$0"
@@ -95,6 +106,10 @@ while [ -n "$1" ]; do
     shift
     resolution="$1"
     echo "resolution set to $resolution";;
+    -s)
+    shift
+    max_size="$1"
+    echo "only files exceeding $max_size bytes will be processed";;
   esac
   shift
 done
