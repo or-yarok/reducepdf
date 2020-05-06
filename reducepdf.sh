@@ -3,8 +3,11 @@
 # THIS SCRIPT REDUCES A SIZE OF PDF-FILE
 
 # OPTIONS:
-# -r to set resolution of page images
+# -r <resolution in dpi> to set resolution of page images
 #    default resolution is 72
+# -s <file size in bytes> to set file size when wihch is 
+#    exceeded only a file will be processed 
+#    default size is 3000000 bytes.
 
 # Constants 
 SCRIPT_NAME="$0"
