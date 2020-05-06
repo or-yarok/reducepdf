@@ -95,6 +95,10 @@ while [ -n "$1" ]; do
     shift
     resolution="$1"
     echo "resolution set to $resolution";;
+    -s)
+    shift
+    max_size="$1"
+    echo "only files exceeding $max_size bytes will be processed";;
   esac
   shift
 done
