@@ -11,17 +11,17 @@
 # OPTIONS:
 # -r <resolution in dpi> to set resolution of page images
 #    default resolution is 72
-# -s <file size in bytes> to set the maximum file size. 
+# -s <file size in bytes> to set the maximum file size.
 #    The script will process all the files whose size exceeds
 #    the maximum size.
-#    The default value is 3000000 bytes (files of 3000000 bytes 
+#    The default value is 3000000 bytes (files of 3000000 bytes
 #    in size and less will not be processed by default).
 
-# Constants 
+# Constants
 SCRIPT_NAME="$0"
 CURDIR="$PWD"
 DEFAULT_RESOLUTION=72 #DPI
-DEFAUILT_MAX_SIZE=3000000
+DEFAUILT_MAX_SIZE=3000000 # bytes
 
 # Functions
 check_file_type(){
@@ -31,12 +31,32 @@ check_file_type(){
     then
     file_type="file"
     fi
-    
+
     if test -d "$file"
     then
     file_type="directory"
     fi
     echo $file_type
+}
+
+validate_is_integer(){
+  value=$1
+  local is_number="False"
+  if [[ $value ]] && [ $value -eq $value 2>/dev/null ]
+  then
+    is_number="True"
+  fi
+  echo $is_number
+}
+
+validate_is_integer_and_positive(){
+  value=$1
+  local is_int_pos=$(validate_is_integer $value)
+  if [[ is_int_pos="True" ]] && [ $value -le 0 2>/dev/null ]
+  then
+    is_int_pos="False"
+  fi
+  echo $is_int_pos
 }
 
 help(){
@@ -56,7 +76,7 @@ reduce_single_file(){
     echo file "$reduced_file1" produced
     convert temp*jpg -page A4 "$reduced_file2"
     echo file "$reduced_file2" produced
-    
+
     rm temp*.jpg
 }
 
@@ -65,7 +85,7 @@ reduce_in_directory(){
     local max_size=$2
     for file in "$dir"*.pdf
     do
-        
+
         file_size=$(stat -c%s "$file")
         if [ "$file_size" -gt "$max_size" ]
         then
@@ -73,12 +93,13 @@ reduce_in_directory(){
             echo "... proceeding"
             reduce_single_file "$file"
         fi
-        
+
     done
 }
 
 # First parameter must be file or directory, either -h for help
 in_file="$1"
+
 if [ "$in_file" = "-h" ] || [ "$in_file" = "-help" ]
 then
     help
@@ -88,7 +109,7 @@ fi
 file_type=$(check_file_type "$in_file")
 if [ "$file_type" = "UNKOWN" ]
 then
-    echo "First parameter must be file or directory." 
+    echo "First parameter must be file or directory."
     echo \""$in_file"\"" does not exist"
     echo "------------------------------------------"
     help
