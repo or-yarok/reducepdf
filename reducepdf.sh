@@ -1,24 +1,6 @@
 #!/bin/bash
-
-# THIS SCRIPT REDUCES A SIZE OF PDF-FILE
-
-# DEPENDENCIES:
-# The script will work properly if you have the following
-# utilities installed:
-# - pdftocairo
-# - ImageMagick and/or img2pdf
-
-# OPTIONS:
-# -r <resolution in dpi> to set resolution of page images.
-#    Default resolution is 72. Value in the interval 30..300
-#    are allowable
-# -s <file size in bytes> to set the maximum file size.
-#    The script will process all the files whose size exceeds
-#    the maximum size.
-#    The default value is 3000000 bytes (files of 3000000 bytes
-#    in size and less will not be processed by default).
-# -q <jpeg quality, %> takes values from 1 up to 100.
-#    Default value is 85.
+# REDUCE PDF-file SIZE
+# (see DESCRIPTION variable or run the script with -h option)
 
 # Constants
 SCRIPT_NAME="$0"
@@ -26,6 +8,43 @@ CURDIR="$PWD"
 DEFAULT_RESOLUTION=72 #DPI
 DEFAUILT_MAX_SIZE=3000000 # bytes
 DEFAULT_QUALITY=85
+DEFUALT_METHOD=1 # 1 - img2pdf; 2 - convert (ImageMagick) utility
+declare -A METHOD_NAMES
+METHOD_NAMES[1]="img2pdf"
+METHOD_NAMES[2]="convert (ImageMagick)"
+
+DESCRIPTION="THIS SCRIPT REDUCES A SIZE OF PDF-FILE
+
+USAGE:
++--------------------------------------------+
+| $SCRIPT_NAME <file or directory> [options] |
++--------------------------------------------+
+
+DEPENDENCIES:
+=============
+The script will work properly if you have installed:
+- pdftocairo
+- ImageMagick and/or img2pdf
+
+OPTIONS:
+========
+-r <resolution in dpi> to set resolution of page images.
+    Default resolution is 72. Value in the interval 30..300
+    are allowable
+-s <file size in bytes> to set the maximum file size.
+    The script will process all the files whose size exceeds
+    the maximum size.
+    The default value is 3000000 bytes (files of 3000000 bytes
+    in size and less will not be processed by default).
+-q <jpeg quality, %> takes values from 1 up to 100.
+    Default value is 85.
+-m <number of method>: to choose a utility to compose a pdf-
+    file:
+    1 for the ${METHOD_NAMES[1]} utility,
+    2 for the ${METHOD_NAMES[2]} utility.
+    The default method is 1 (img2pdf).
+"
+
 
 # Functions
 check_file_type(){
@@ -63,7 +82,7 @@ validate_resolution(){
     return 0 # True (valid)
   else
     echo "Valid resolution is a number between $min_resolution and $max_resolution"
-	echo "The default resolution $DEFAULT_RESOLUTION will be used"
+	echo "The default resolution $DEFAULT_RESOLUTION will be used."
     return 1 # False (not valid)
   fi
 }
@@ -83,32 +102,39 @@ validate_quality(){
     fi
 }
 
+validate_method(){
+	local value=$1
+	if [[ $value -eq 1 ]] || [[ $value -eq 2 ]]
+	then
+        return 0
+    else
+        echo "Not valid method number. The method $DEFUALT_METHOD will be used."
+        return 1
+    fi
+
+}
+
 help(){
-    echo USAGE:
-    echo "$SCRIPT_NAME <file or directory> [options]"
-    echo "Options:"
-    echo "-r <resolution in dpi> to set resolution of page images."
-    echo "Default resolution is 72. The values in the interval 30..300"
-    echo "are allowable"
-    echo "-s <file size in bytes> to set the maximum file size."
-    echo "The script will process all the files whose size exceeds"
-    echo "the maximum size."
-    echo "The default value is 3000000 bytes (files of 3000000 bytes"
-    echo "in size and less will not be processed by default)."
-    echo "-q <jpeg quality, %> takes values from 1 up to 100."
-    echo "Default value is 85."
+    echo "$DESCRIPTION"
 }
 
 reduce_single_file(){
     file_to_reduce="$1"
-    reduced_file1="$(basename -s '.pdf' "$file_to_reduce")""_reduced1.pdf"
-    reduced_file2="$(basename -s '.pdf' "$file_to_reduce")""_reduced2.pdf"
+    reduced_file="$(basename -s '.pdf' "$file_to_reduce")""_reduced.pdf"
+    #reduced_file2="$(basename -s '.pdf' "$file_to_reduce")""_reduced2.pdf"
     pdftocairo "$file_to_reduce" -jpeg -gray -r $resolution -jpegopt "quality=$quality" temp
     #pdftocairo "$file_to_reduce" -jpeg -gray -scale-to "$scale" temp
-    img2pdf temp*.jpg -o "$reduced_file1"
-    echo file "$reduced_file1" produced
-    convert temp*jpg -page A4 "$reduced_file2"
-    echo file "$reduced_file2" produced
+    case $method in
+        1) img2pdf temp*.jpg -o "$reduced_file";;
+        2) convert temp*jpg -page A4 "$reduced_file";;
+    esac
+	if [[ -e "$reduced_file" ]]; then
+		reduced_size=$(stat -c%s "$reduced_file")
+		init_size=$(stat -c%s "$file_to_reduce")
+		reduce_ratio=$(awk "BEGIN {print ($reduced_size/$init_size)*100}")"%"
+		echo -e "file "$reduced_file" produced\n     of $reduced_size bytes ("$reduce_ratio" of the initial size)"
+	else echo "something went wrong..."
+	fi
 
     rm temp*.jpg
 }
@@ -151,6 +177,8 @@ fi
 resolution=$DEFAULT_RESOLUTION
 max_size=$DEFAUILT_MAX_SIZE
 quality=$DEFAULT_QUALITY
+method=$DEFUALT_METHOD
+
 
 #looping over parameters passed to the script
 while [ -n "$1" ]; do
@@ -175,6 +203,14 @@ while [ -n "$1" ]; do
         quality="$1"
         echo "pages will be compressed using quality value of $quality"
     fi;;
+	-m)
+	shift
+	validate_method "$1"
+	if [ $? -eq 0 ]
+	then
+		method="$1"
+		echo "Method number $method is given: ${METHOD_NAMES[$method]} will be used"
+	fi;;
   esac
   shift
 done
