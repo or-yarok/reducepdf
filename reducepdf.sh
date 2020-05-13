@@ -124,11 +124,11 @@ reduce_single_file(){
     file_to_reduce="$1"
     reduced_file="$(basename -s '.pdf' "$file_to_reduce")""_reduced.pdf"
     #reduced_file2="$(basename -s '.pdf' "$file_to_reduce")""_reduced2.pdf"
-    pdftocairo "$file_to_reduce" -jpeg -gray -r $resolution -jpegopt "quality=$quality" temp
+    pdftocairo "$file_to_reduce" -jpeg -gray -r $resolution -jpegopt "quality=$quality" temp_ihYgw6n
     #pdftocairo "$file_to_reduce" -jpeg -gray -scale-to "$scale" temp
     case $method in
-        1) img2pdf temp*.jpg -S "$PAGE_SIZE" -o "$reduced_file";;
-        2) convert temp*jpg -page "$PAGE_SIZE" "$reduced_file";;
+        1) img2pdf temp_ihYgw6n*.jpg -S "$PAGE_SIZE" -o "$reduced_file";;
+        2) convert temp_ihYgw6n*jpg -page "$PAGE_SIZE" "$reduced_file";;
     esac
 	if [[ -e "$reduced_file" ]]; then
 		reduced_size=$(stat -c%s "$reduced_file")
@@ -138,7 +138,7 @@ reduce_single_file(){
 	else echo "something went wrong..."
 	fi
 
-    rm temp*.jpg
+    rm temp_ihYgw6n*.jpg
 }
 
 reduce_in_directory(){
