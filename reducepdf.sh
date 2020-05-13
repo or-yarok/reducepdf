@@ -13,12 +13,14 @@ declare -A METHOD_NAMES
 METHOD_NAMES[1]="img2pdf"
 METHOD_NAMES[2]="convert (ImageMagick)"
 
+PAGE_SIZE="A4"
+
 DESCRIPTION="THIS SCRIPT REDUCES A SIZE OF PDF-FILE
 
 USAGE:
-+--------------------------------------------+
-| $SCRIPT_NAME <file or directory> [options] |
-+--------------------------------------------+
+======
+
+ $SCRIPT_NAME <file or directory> [options]
 
 DEPENDENCIES:
 =============
@@ -125,8 +127,8 @@ reduce_single_file(){
     pdftocairo "$file_to_reduce" -jpeg -gray -r $resolution -jpegopt "quality=$quality" temp
     #pdftocairo "$file_to_reduce" -jpeg -gray -scale-to "$scale" temp
     case $method in
-        1) img2pdf temp*.jpg -o "$reduced_file";;
-        2) convert temp*jpg -page A4 "$reduced_file";;
+        1) img2pdf temp*.jpg -S "$PAGE_SIZE" -o "$reduced_file";;
+        2) convert temp*jpg -page "$PAGE_SIZE" "$reduced_file";;
     esac
 	if [[ -e "$reduced_file" ]]; then
 		reduced_size=$(stat -c%s "$reduced_file")
