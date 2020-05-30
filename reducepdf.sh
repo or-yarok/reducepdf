@@ -8,28 +8,37 @@ CURDIR="$PWD"
 DEFAULT_RESOLUTION=72 #DPI
 DEFAUILT_MAX_SIZE=3000000 # bytes
 DEFAULT_QUALITY=85
-DEFUALT_METHOD=1 # 1 - img2pdf; 2 - convert (ImageMagick) utility
+DEFUALT_METHOD=3 # 1 - img2pdf; 2 - convert (ImageMagick) utility; 3 - gs (gohstscript)
 declare -A METHOD_NAMES
 METHOD_NAMES[1]="img2pdf"
 METHOD_NAMES[2]="convert (ImageMagick)"
+METHOD_NAMES[3]="gs (ghostscript)"
+declare -A DEPENDENCIES
+DEPENDENCIES[1]="pdftocairo"
+DEPENDENCIES[2]="img2pdf"
+DEPENDENCIES[3]="convert"
+DEPENDENCIES[4]="gs"
+declare -A METHOD_REQUIREMENTS
+METHOD_REQUIREMENTS[1]="12" # index of DEPENDENCIES required (pdftocairo and img2pdf)
+METHOD_REQUIREMENTS[2]="13" # index of DEPENDENCIES required (pdftocairo and convert)
+METHOD_REQUIREMENTS[3]="4"  # index of DEPENDENCIES required (gs)
 
 PAGE_SIZE="A4"
 
 DESCRIPTION="THIS SCRIPT REDUCES A SIZE OF PDF-FILE
 
 USAGE:
-======
 
  $SCRIPT_NAME <file or directory> [options]
 
 DEPENDENCIES:
 =============
-The script will work properly if you have installed:
-- pdftocairo
-- ImageMagick and/or img2pdf
+The script will work properly if you have the necessary packages installed.
+Description of the option "-m" bellow contains information which packages
+are required for different methods of this script.
 
-OPTIONS:
-========
+OPTIONS and the default values:
+===============================
 -r <resolution in dpi> to set resolution of page images.
     Default resolution is 72. Value in the interval 30..300
     are allowable
@@ -42,13 +51,61 @@ OPTIONS:
     Default value is 85.
 -m <number of method>: to choose a utility to compose a pdf-
     file:
-    1 for the ${METHOD_NAMES[1]} utility,
-    2 for the ${METHOD_NAMES[2]} utility.
-    The default method is 1 (img2pdf).
+    1 for the ${METHOD_NAMES[1]} utility, required: ${DEPENDENCIES[1]} and ${DEPENDENCIES[2]} ;
+    2 for the ${METHOD_NAMES[2]} utility, required: ${DEPENDENCIES[1]} and ${DEPENDENCIES[3]} ;
+    3 for the ${METHOD_NAMES[3]} utility, required: ${DEPENDENCIES[4]}.
+    The default method is $DEFUALT_METHOD (${METHOD_NAMES[$DEFUALT_METHOD]}).
 "
 
-
 # Functions
+calc(){
+	decimaldigits=2
+    calculations=$1
+	echo $(echo "scale=2; $calculations" | bc)
+
+}
+
+isPackageInstalled(){
+    local pkg=$(which $1)
+    if [ -z $pkg ]; then
+        return 1 # not installed
+    else
+        return 0 # installed
+    fi
+}
+
+check_requirements(){
+	local pkg=""
+	method_num=$1
+	method_name=${METHOD_NAMES[$method_num]}
+	requirements=${METHOD_REQUIREMENTS[$method_num]}
+	all_dependencies_solved=0
+	while ! [ -z $requirements ]; do
+		pkg=${DEPENDENCIES[$(echo $requirements | head -c 1)]}
+		requirements=$(echo $requirements | sed -e "s/^.//")
+		isPackageInstalled $pkg
+		all_dependencies_solved=$((all_dependencies_solved+$?))
+		if [ $? -ne 0 ]; then
+			echo "it seems $pkg is not installed"
+		fi
+	done
+	return $all_dependencies_solved
+}
+
+nicesize(){
+bytes=$1
+nicesize=$1" bytes"
+if [[ bytes -gt 1048576 ]]; then
+    nicesize=$(calc "$bytes""/1048576")" MiB"
+elif [[ bytes -gt 1024 ]]; then
+    nicesize=$(calc "$bytes""/1024")" KiB"
+fi
+
+echo $nicesize
+return 0
+
+}
+
 check_file_type(){
     file_type="UNKOWN"
     file="$1"
@@ -72,6 +129,17 @@ validate_is_integer(){
   else
     return 1 # False
   fi
+}
+
+
+validate_is_int_positive(){
+    local value$=$1
+    if ! [[ ${value//[0-9]/""} ]]
+    then
+        return 0 # True; $1 has digits only
+    else
+        return 1 # False; $1 contains other letters besides digits
+    fi
 }
 
 validate_resolution(){
@@ -106,8 +174,18 @@ validate_quality(){
 
 validate_method(){
 	local value=$1
-	if [[ $value -eq 1 ]] || [[ $value -eq 2 ]]
+	if [[ $value -eq 1 ]] || [[ $value -eq 2 ]]|| [[ $value -eq 3 ]]
 	then
+		check_requirements $value
+		if [ $? -eq 0 ]; then
+			echo "all necessary packages for method ${METHOD_NAMES[$value]} are installed"
+		else
+			echo $? " packages are required for method ${METHOD_NAMES[$value]} but not installed"
+			echo "All available methods and required packages are described bellow:"
+			echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+			help
+			exit 1
+		fi
         return 0
     else
         echo "Not valid method number. The method $DEFUALT_METHOD will be used."
@@ -120,25 +198,53 @@ help(){
     echo "$DESCRIPTION"
 }
 
+
+get_random_letters(){
+    length=$1
+    letters_range='a-zA-Z'
+    sequence=$( cat /dev/urandom | tr -dc $letters_range | fold -w $length | head -n 1  )
+    echo $sequence
+    return 0
+}
+
+make_jpeg_from_pdf(){
+    local source_pdf=$1
+    local jpeg_names_template=$2
+    pdftocairo -jpeg -gray -r $resolution -jpegopt "quality=$quality" "$source_pdf" $jpeg_names_template
+}
+
 reduce_single_file(){
     file_to_reduce="$1"
     reduced_file="$(basename -s '.pdf' "$file_to_reduce")""_reduced.pdf"
-    #reduced_file2="$(basename -s '.pdf' "$file_to_reduce")""_reduced2.pdf"
-    pdftocairo "$file_to_reduce" -jpeg -gray -r $resolution -jpegopt "quality=$quality" temp
+    # random names for temporary files are generating in order to avoid coninciting with existing files
+    temporary_files_template=$(get_random_letters 8)
+    #pdftocairo "$file_to_reduce" -jpeg -gray -r $resolution -jpegopt "quality=$quality" $temporary_files_template
     #pdftocairo "$file_to_reduce" -jpeg -gray -scale-to "$scale" temp
     case $method in
-        1) img2pdf temp*.jpg -S "$PAGE_SIZE" -o "$reduced_file";;
-        2) convert temp*jpg -page "$PAGE_SIZE" "$reduced_file";;
+
+        1) make_jpeg_from_pdf "$file_to_reduce" "$temporary_files_template"
+        img2pdf "$temporary_files_template"*.jpg -S "$PAGE_SIZE" -o "$reduced_file"
+        rm "$temporary_files_template"*.jpg;;
+
+        2) make_jpeg_from_pdf "$file_to_reduce" "$temporary_files_template"
+        convert "$temporary_files_template"*.jpg -page "$PAGE_SIZE" "$reduced_file"
+        rm "$temporary_files_template"*.jpg;;
+
+        3) settings="/ebook"
+        if [[ $resolution -lt 96 ]]; then settings="/screen"; fi
+        if [[ $resolution -gt 199 ]]; then settings="/printer"; fi
+        ghostscript -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 \
+		-dPDFSETTINGS="$settings" -dNOPAUSE -dQUIET -dBATCH \
+		-sOutputFile="$reduced_file" "$file_to_reduce"
     esac
 	if [[ -e "$reduced_file" ]]; then
 		reduced_size=$(stat -c%s "$reduced_file")
 		init_size=$(stat -c%s "$file_to_reduce")
 		reduce_ratio=$(awk "BEGIN {print ($reduced_size/$init_size)*100}")"%"
-		echo -e "file "$reduced_file" produced\n     of $reduced_size bytes ("$reduce_ratio" of the initial size)"
+		nice_reduced_size=$(nicesize $reduced_size)
+		echo -e "file "$reduced_file" produced\n     of $nice_reduced_size bytes ("$reduce_ratio" of the initial size)"
 	else echo "something went wrong..."
 	fi
-
-    rm temp*.jpg
 }
 
 reduce_in_directory(){
@@ -155,6 +261,7 @@ reduce_in_directory(){
         fi
     done
 }
+
 
 # First parameter must be file or directory, either -h for help
 in_file="$1"
@@ -175,11 +282,11 @@ then
 exit 0
 fi
 
-# Obtaining user parameters (options)
+## Obtaining user parameters (options)
 resolution=$DEFAULT_RESOLUTION
 max_size=$DEFAUILT_MAX_SIZE
 quality=$DEFAULT_QUALITY
-method=$DEFUALT_METHOD
+method=""
 
 
 #looping over parameters passed to the script
@@ -216,6 +323,11 @@ while [ -n "$1" ]; do
   esac
   shift
 done
+
+if [ -z $method ]; then
+	method=$DEFUALT_METHOD
+	check_requirements $method
+fi
 
 scale=$(awk "BEGIN {print int((11+11/16)*$resolution)}")
 
