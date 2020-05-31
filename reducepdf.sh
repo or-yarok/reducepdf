@@ -236,6 +236,8 @@ reduce_single_file(){
         ghostscript -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 \
 		-dPDFSETTINGS="$settings" -dNOPAUSE -dQUIET -dBATCH \
 		-sOutputFile="$reduced_file" "$file_to_reduce"
+
+ 
     esac
 	if [[ -e "$reduced_file" ]]; then
 		reduced_size=$(stat -c%s "$reduced_file")
