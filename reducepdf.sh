@@ -58,11 +58,12 @@ OPTIONS and the default values:
 "
 
 # Functions
+
+. numvalidation.sh
+
 calc(){
-	decimaldigits=2
     calculations=$1
 	echo $(echo "scale=2; $calculations" | bc)
-
 }
 
 isPackageInstalled(){
@@ -121,32 +122,11 @@ check_file_type(){
     echo $file_type
 }
 
-validate_is_integer(){
-  local value=$1
-  if [[ $value ]] && [ $value -eq $value 2>/dev/null ]
-  then
-    return 0 # True
-  else
-    return 1 # False
-  fi
-}
-
-
-validate_is_int_positive(){
-    local value$=$1
-    if ! [[ ${value//[0-9]/""} ]]
-    then
-        return 0 # True; $1 has digits only
-    else
-        return 1 # False; $1 contains other letters besides digits
-    fi
-}
-
 validate_resolution(){
   local value=$1
   min_resolution=30
   max_resolution=300
-  validate_is_integer $value
+  validate_is_pos_int $value
   if [[ $? -eq 0 ]] && [ $value -le $max_resolution ] && [ $value -ge $min_resolution ]
   then
     return 0 # True (valid)
@@ -161,7 +141,7 @@ validate_quality(){
     local value=$1
     min_quality=1
     max_quality=100
-    validate_is_integer $value
+    validate_is_pos_int $value
     if [[ $? -eq 0 ]] && [ $value -le $max_quality ] && [ $value -ge $min_quality ]
     then
         return 0 # True (valid)
@@ -178,7 +158,7 @@ validate_method(){
 	then
 		check_requirements $value
 		if [ $? -eq 0 ]; then
-			echo "all necessary packages for method ${METHOD_NAMES[$value]} are installed"
+			echo "all necessary packages for method ${METHOD_NAMES[$value]} exist"
 		else
 			echo $? " packages are required for method ${METHOD_NAMES[$value]} but not installed"
 			echo "All available methods and required packages are described bellow:"
@@ -237,7 +217,7 @@ reduce_single_file(){
 		-dPDFSETTINGS="$settings" -dNOPAUSE -dQUIET -dBATCH \
 		-sOutputFile="$reduced_file" "$file_to_reduce"
 
- 
+
     esac
 	if [[ -e "$reduced_file" ]]; then
 		reduced_size=$(stat -c%s "$reduced_file")
@@ -277,7 +257,7 @@ fi
 file_type=$(check_file_type "$in_file")
 if [ "$file_type" = "UNKOWN" ]
 then
-    echo "First parameter must be file or directory."
+    echo "First parameter must be file or directory, or -h for help."
     echo \""$in_file"\"" does not exist"
     echo "------------------------------------------"
     help
