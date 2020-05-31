@@ -1,9 +1,11 @@
 # reducepdf
 bash script to reduce pdf file 
+# USAGE:
+reducepdf.sh <pdf-file to reduce> [options]
 # OPTIONS
 * _-r_ <resolution in dpi> to set resolution of page images.
     
-    Default resolution is 72. Value in the interval 30..300 are allowable
+    Default resolution is 72. Values in the interval 30..300 are allowable
 
 * _-s_ <file size in bytes> to set the maximum file size.  
     
@@ -19,7 +21,7 @@ bash script to reduce pdf file
     
     1 - this method uses pdftocairo+img2pdf
     
-    2 - this method uses pdftocairo+conver(ImageMagick)
+    2 - this method uses pdftocairo+convert(ImageMagick)
     
     3 - this method uses ghostscript(gs)
     
