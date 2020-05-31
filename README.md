@@ -1,7 +1,7 @@
 # reducepdf
 bash script to reduce pdf file 
 # USAGE:
-reducepdf.sh <pdf-file to reduce> [options]
+reducepdf.sh `<pdf-file to reduce>` [options]
 # OPTIONS
 * _-r_ <resolution in dpi> to set resolution of page images.
     
