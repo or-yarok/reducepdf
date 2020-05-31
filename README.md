@@ -12,7 +12,7 @@ bash script to reduce pdf file
     Default value is 85.
 
 * _-m_ <number of method>: to choose a utility to compose a pdf-file:
-    1. - this method uses pdftocairo+img2pdf
-    2. - this method uses pdftocairo+conver(ImageMagick)
-    3. - this method uses ghostscript(gs)
+    1 - this method uses pdftocairo+img2pdf
+    2 - this method uses pdftocairo+conver(ImageMagick)
+    3 - this method uses ghostscript(gs)
     The default method is 3 (ghostscript).
