@@ -5,7 +5,7 @@ reducepdf.sh `<pdf-file to reduce | directory containing pdf-files to reduce>` [
 # OPTIONS
 * _-r_ <resolution in dpi> to set resolution of page images.
     
-    Default resolution is 72. Values in the interval 30..300 are allowable
+    Default resolution is 72. <br> Values in the interval 30..300 are allowable
 
 * _-s_ <file size in bytes> to set the maximum file size.  
     
