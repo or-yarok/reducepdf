@@ -85,8 +85,9 @@ check_requirements(){
 		pkg=${DEPENDENCIES[$(echo $requirements | head -c 1)]}
 		requirements=$(echo $requirements | sed -e "s/^.//")
 		isPackageInstalled $pkg
-		all_dependencies_solved=$((all_dependencies_solved+$?))
-		if [ $? -ne 0 ]; then
+		pkg_is_installed=$? # result of testing whether $pkg isinstalled (0), or not (1)
+		all_dependencies_solved=$((all_dependencies_solved+$pkg_is_installed))
+		if [ $pkg_is_installed -ne 0 ]; then
 			echo "it seems $pkg is not installed"
 		fi
 	done
