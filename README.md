@@ -33,6 +33,7 @@ Thanks to:
 * The pdftocairo software and documentation, copyrighted by [Glyph & Cog, LLC](https://glyphandcog.com/) and [The Poppler Developers](https://poppler.freedesktop.org/),  [authors](https://github.com/freedesktop/poppler/blob/master/AUTHORS)
 * img2pdf by Johannes 'josch' Schauer (on [PyPI](https://pypi.org/project/img2pdf/), [GitHUB])https://github.com/josch/img2pdf) ).
 
-#License:
->##GPL
+# License:
+
+> ## GPL
     
