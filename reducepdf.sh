@@ -63,7 +63,7 @@ OPTIONS and the default values:
 
 calc(){
     calculations=$1
-	echo $(echo "scale=2; $calculations" | bc)
+    bc <<< "scale=2; $calculations"
 }
 
 isPackageInstalled(){
