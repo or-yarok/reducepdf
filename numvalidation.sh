@@ -15,10 +15,8 @@ validate_is_pos_int(){
     local value=$1
     if ! [[ ${value//[0-9]/""} ]]
     then
-		echo "return 0 - "${value//[0-9]/""}
         return 0 # True; $1 has digits only
     else
-		echo "return 1 - "${value//[0-9]/""}
         return 1 # False; $1 contains other letters besides digits
     fi
 }
