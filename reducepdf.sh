@@ -67,8 +67,9 @@ calc(){
 }
 
 isPackageInstalled(){
-    local pkg=$(which $1)
-    if [ -z $pkg ]; then
+    local pkg
+    pkg="$(which "$1")"
+    if [ -z "$pkg" ]; then
         return 1 # not installed
     else
         return 0 # installed
