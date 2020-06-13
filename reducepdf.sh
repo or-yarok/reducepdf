@@ -82,7 +82,7 @@ check_requirements(){
 	# method_name=${METHOD_NAMES[$method_num]}
 	requirements=${METHOD_REQUIREMENTS[$method_num]}
 	all_dependencies_solved=0
-	while [ -n $requirements ]; do
+	while [[ -n $requirements ]]; do
 		pkg=${DEPENDENCIES[$(echo $requirements | head -c 1)]}
 		requirements=$(echo $requirements | sed -e "s/^.//")
 		isPackageInstalled $pkg
