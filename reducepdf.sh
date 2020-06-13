@@ -34,7 +34,7 @@ USAGE:
 DEPENDENCIES:
 =============
 The script will work properly if you have the necessary packages installed.
-Description of the option "-m" bellow contains information which packages
+Description of the option \"-m\" bellow contains information which packages
 are required for different methods of this script.
 
 OPTIONS and the default values:
@@ -79,15 +79,15 @@ isPackageInstalled(){
 check_requirements(){
 	local pkg=""
 	method_num=$1
-	method_name=${METHOD_NAMES[$method_num]}
+	# method_name=${METHOD_NAMES[$method_num]}
 	requirements=${METHOD_REQUIREMENTS[$method_num]}
 	all_dependencies_solved=0
-	while ! [ -z $requirements ]; do
+	while [ -n $requirements ]; do
 		pkg=${DEPENDENCIES[$(echo $requirements | head -c 1)]}
 		requirements=$(echo $requirements | sed -e "s/^.//")
 		isPackageInstalled $pkg
 		pkg_is_installed=$? # result of testing whether $pkg isinstalled (0), or not (1)
-		all_dependencies_solved=$((all_dependencies_solved+$pkg_is_installed))
+		all_dependencies_solved=$((all_dependencies_solved+pkg_is_installed))
 		if [ $pkg_is_installed -ne 0 ]; then
 			echo "it seems $pkg is not installed"
 		fi
@@ -104,7 +104,7 @@ elif [[ bytes -gt 1024 ]]; then
     nicesize=$(calc "$bytes""/1024")" KiB"
 fi
 
-echo $nicesize
+echo "$nicesize"
 return 0
 
 }
@@ -128,8 +128,9 @@ validate_resolution(){
   local value=$1
   min_resolution=30
   max_resolution=300
-  validate_is_pos_int $value
-  if [[ $? -eq 0 ]] && [ $value -le $max_resolution ] && [ $value -ge $min_resolution ]
+  validate_is_pos_int "$value"
+  is_value_pos_int=$?
+  if [[ "$is_value_pos_int" -eq 0 ]] && [ "$value" -le $max_resolution ] && [ "$value" -ge $min_resolution ]
   then
     return 0 # True (valid)
   else
@@ -144,7 +145,8 @@ validate_quality(){
     min_quality=1
     max_quality=100
     validate_is_pos_int $value
-    if [[ $? -eq 0 ]] && [ $value -le $max_quality ] && [ $value -ge $min_quality ]
+    is_value_pos_int=$?
+    if [[ "$is_value_pos_int" -eq 0 ]] && [ $value -le $max_quality ] && [ $value -ge $min_quality ]
     then
         return 0 # True (valid)
     else
@@ -158,11 +160,12 @@ validate_method(){
 	local value=$1
 	if [[ $value -eq 1 ]] || [[ $value -eq 2 ]]|| [[ $value -eq 3 ]]
 	then
-		check_requirements $value
-		if [ $? -eq 0 ]; then
+		check_requirements "$value"
+		is_requirements_met=$?
+		if [ "$is_requirements_met" -eq 0 ]; then
 			echo "all necessary packages for method ${METHOD_NAMES[$value]} exist"
 		else
-			echo $? " packages are required for method ${METHOD_NAMES[$value]} but not installed"
+			echo $is_requirements_met " packages are required for method ${METHOD_NAMES[$value]} but not installed"
 			echo "All available methods and required packages are described bellow:"
 			echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 			help
@@ -185,14 +188,14 @@ get_random_letters(){
     length=$1
     letters_range='a-zA-Z'
     sequence=$( cat /dev/urandom | tr -dc $letters_range | fold -w $length | head -n 1  )
-    echo $sequence
+    echo "$sequence"
     return 0
 }
 
 make_jpeg_from_pdf(){
     local source_pdf=$1
     local jpeg_names_template=$2
-    pdftocairo -jpeg -gray -r $resolution -jpegopt "quality=$quality" "$source_pdf" $jpeg_names_template
+    pdftocairo -jpeg -gray -r $resolution -jpegopt "quality=$quality" "$source_pdf" "$jpeg_names_template"
 }
 
 reduce_single_file(){
@@ -225,8 +228,8 @@ reduce_single_file(){
 		reduced_size=$(stat -c%s "$reduced_file")
 		init_size=$(stat -c%s "$file_to_reduce")
 		reduce_ratio=$(awk "BEGIN {print ($reduced_size/$init_size)*100}")"%"
-		nice_reduced_size=$(nicesize $reduced_size)
-		echo -e "file "$reduced_file" produced\n     of $nice_reduced_size bytes ("$reduce_ratio" of the initial size)"
+		nice_reduced_size=$(nicesize "$reduced_size")
+		echo -e "file ""$reduced_file"" produced\n     of ""$nice_reduced_size"" bytes (""$reduce_ratio"" of the initial size)"
 	else echo "something went wrong..."
 	fi
 }
@@ -277,33 +280,33 @@ method=""
 while [ -n "$1" ]; do
   case $1 in
     -r)
-    shift
-    validate_resolution "$1"
-    if [ $? -eq 0 ]
+    shift   
+    if [[ $(validate_resolution "$1") -eq 0 ]]
     then
         resolution="$1"
         echo "resolution set to $resolution"
     fi;;
+    
     -s)
     shift
     max_size="$1"
     echo "only files exceeding $max_size bytes will be processed";;
+    
     -q)
     shift
-    validate_quality "$1"
-    if [ $? -eq 0 ]
+    if [ $(validate_quality "$1") -eq 0 ]
     then
         quality="$1"
         echo "pages will be compressed using quality value of $quality"
     fi;;
-	-m)
-	shift
-	validate_method "$1"
-	if [ $? -eq 0 ]
-	then
-		method="$1"
-		echo "Method number $method is given: ${METHOD_NAMES[$method]} will be used"
-	fi;;
+    
+    -m)
+    shift
+    if [ $(validate_method "$1") -eq 0 ]
+    then
+        method="$1"
+	echo "Method number $method is given: ${METHOD_NAMES[$method]} will be used"
+    fi;;
   esac
   shift
 done
@@ -324,7 +327,7 @@ fi
 
 if [ "$file_type" = "directory" ]
 then
-    reduce_in_directory "$in_file" $max_size
+    reduce_in_directory "$in_file" "$max_size"
     echo DONE
 fi
 
