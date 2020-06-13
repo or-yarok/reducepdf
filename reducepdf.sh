@@ -4,7 +4,7 @@
 
 # Constants
 SCRIPT_NAME="$0"
-CURDIR="$PWD"
+CURDIR=$(dirname $0) #where the script is located
 DEFAULT_RESOLUTION=72 #DPI
 DEFAUILT_MAX_SIZE=3000000 # bytes
 DEFAULT_QUALITY=85
