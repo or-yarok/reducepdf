@@ -59,7 +59,7 @@ OPTIONS and the default values:
 
 # Functions
 
-. numvalidation.sh
+. ${CURDIR}numvalidation.sh
 
 calc(){
     calculations=$1
