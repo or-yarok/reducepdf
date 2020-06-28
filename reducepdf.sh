@@ -4,10 +4,10 @@
 
 # Constants
 SCRIPT_NAME="$0"
-CURDIR=$(dirname $0) #where the script is located
+CURDIR=$(dirname "$0") #where the script is located
 DEFAULT_RESOLUTION=72 #DPI
 DEFAUILT_MAX_SIZE=3000000 # bytes
-DEFAULT_QUALITY=85
+DEFAULT_QUALITY=85 # percents
 DEFUALT_METHOD=3 # 1 - img2pdf; 2 - convert (ImageMagick) utility; 3 - gs (gohstscript)
 declare -A METHOD_NAMES
 METHOD_NAMES[1]="img2pdf"
@@ -59,7 +59,7 @@ OPTIONS and the default values:
 
 # Functions
 
-. ${CURDIR}"/numvalidation.sh"
+. "${CURDIR}""/numvalidation.sh"
 
 calc(){
     calculations=$1
@@ -84,13 +84,10 @@ check_requirements(){
 	all_dependencies_solved=0
 	while [[ -n $requirements ]]; do
 		pkg=${DEPENDENCIES[$(echo $requirements | head -c 1)]}
-		requirements=$(echo $requirements | sed -e "s/^.//")
+		requirements=${requirements:1} #equivalent to $(echo $requirements | sed -e "s/^.//")
 		isPackageInstalled $pkg
 		pkg_is_installed=$? # result of testing whether $pkg isinstalled (0), or not (1)
 		all_dependencies_solved=$((all_dependencies_solved+pkg_is_installed))
-		if [ $pkg_is_installed -ne 0 ]; then
-			echo "it seems $pkg is not installed"
-		fi
 	done
 	return $all_dependencies_solved
 }
@@ -134,8 +131,6 @@ validate_resolution(){
   then
     return 0 # True (valid)
   else
-    echo "Valid resolution is a number between $min_resolution and $max_resolution"
-	echo "The default resolution $DEFAULT_RESOLUTION will be used."
     return 1 # False (not valid)
   fi
 }
@@ -144,37 +139,29 @@ validate_quality(){
     local value=$1
     min_quality=1
     max_quality=100
-    validate_is_pos_int $value
+    validate_is_pos_int "$value"
     is_value_pos_int=$?
-    if [[ "$is_value_pos_int" -eq 0 ]] && [ $value -le $max_quality ] && [ $value -ge $min_quality ]
+    if [[ "$is_value_pos_int" -eq 0 ]] && [ "$value" -le $max_quality ] && [ "$value" -ge $min_quality ]
     then
         return 0 # True (valid)
     else
-        echo "Valid quality of jpeg compression is a number between $min_quality and $max_quality"
-        echo "The default value $DEFAULT_QUALITY will be used"
         return 1 # False (not valid)
     fi
 }
 
 validate_method(){
 	local value=$1
-	if [[ $value -eq 1 ]] || [[ $value -eq 2 ]]|| [[ $value -eq 3 ]]
+	if [[ $value = "1" ]] || [[ $value = "2" ]] || [[ $value = "3" ]]
 	then
 		check_requirements "$value"
 		is_requirements_met=$?
-		if [ "$is_requirements_met" -eq 0 ]; then
-			echo "all necessary packages for method ${METHOD_NAMES[$value]} exist"
+		if [[ "$is_requirements_met" = "0" ]]; then
+			return 0 # all necessary packages for method ${METHOD_NAMES[$value]} exist
 		else
-			echo $is_requirements_met " packages are required for method ${METHOD_NAMES[$value]} but not installed"
-			echo "All available methods and required packages are described bellow:"
-			echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-			help
-			exit 1
+			return "$is_requirements_met" # number of absent packages
 		fi
-        return 0
     else
-        echo "Not valid method number. The method $DEFUALT_METHOD will be used."
-        return 1
+        return 10 # not valid method number
     fi
 
 }
@@ -263,7 +250,7 @@ file_type=$(check_file_type "$in_file")
 if [ "$file_type" = "UNKOWN" ]
 then
     echo "First parameter must be file or directory, or -h for help."
-    echo \""$in_file"\"" does not exist"
+    echo "file < $in_file >"" does not exist"
     echo "------------------------------------------"
     help
 exit 0
@@ -280,43 +267,65 @@ method=""
 while [ -n "$1" ]; do
   case $1 in
     -r)
-    shift   
-    if [[ $(validate_resolution "$1") -eq 0 ]]
+    shift
+	validate_resolution "$1"
+	is_resolution_valid=$?
+    if [[ $is_resolution_valid = "0" ]]
     then
         resolution="$1"
         echo "resolution set to $resolution"
+	else
+		echo "the given resolution $1 is not valid; the default resolution $DEFAULT_RESOLUTION will be used"
     fi;;
-    
+
     -s)
     shift
     max_size="$1"
     echo "only files exceeding $max_size bytes will be processed";;
-    
+
     -q)
     shift
-    if [ $(validate_quality "$1") -eq 0 ]
+    validate_quality "$1"
+    is_quality_valid=$?
+    if [[ $is_quality_valid = "0" ]]
     then
         quality="$1"
         echo "pages will be compressed using quality value of $quality"
+    else
+        echo "the given quality $1 is not valid; the default quality $DEFAULT_QUALITY will be used."
     fi;;
-    
+
     -m)
     shift
-    if [ $(validate_method "$1") -eq 0 ]
+	validate_method "$1"
+	is_method_valid=$?
+    if [[ $is_method_valid = "0" ]]
     then
         method="$1"
-	echo "Method number $method is given: ${METHOD_NAMES[$method]} will be used"
+        echo "Method number $method is given: ${METHOD_NAMES[$method]} will be used"
+    elif [[ $is_method_valid = "10" ]]
+    then
+        echo "not valid method number, the default method will be used"
+    else
+        echo $is_method_valid " package(s) required for the choosen method are (is) not installed. I will try to use the default method"
     fi;;
   esac
   shift
 done
 
-if [ -z $method ]; then
+if [ -z "$method" ]; then
 	method=$DEFUALT_METHOD
 	check_requirements $method
+	is_requirements_met=$?
+	if [[ "$is_requirements_met" != 0 ]]; then
+		echo $is_requirements_met "packages are required and not installed"
+		help
+		exit 1
+	fi
 fi
 
-scale=$(awk "BEGIN {print int((11+11/16)*$resolution)}")
+# scale parameter will be implemented in the future:
+# scale=$(awk "BEGIN {print int((11+11/16)*$resolution)}")
 
 # main activity
 if [ "$file_type" = "file" ]
