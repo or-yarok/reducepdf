@@ -181,7 +181,6 @@ get_random_letters(){
 
 is_jpegopt_quality_supported(){
 	extract_from_manual=$(man pdftocairo | grep JPEG\ quality)
-	echo $extract_from_manual
 	if [[ -n $extract_from_manual ]]; then
 		return 0 # supported (there is a string containing "JPEG quality" in manual)
 	else
@@ -195,7 +194,6 @@ make_jpeg_from_pdf(){
 	jpegopt="-jpegopt quality=""$quality"
 	is_jpegopt_quality_supported
 	supported=$?
-	echo $supported
 	if [[ $supported -eq 1 ]]; then jpegopt=""; fi
     pdftocairo -jpeg -gray -r $resolution ${jpegopt} "$source_pdf" "$jpeg_names_template"
 }
