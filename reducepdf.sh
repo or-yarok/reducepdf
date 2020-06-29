@@ -179,10 +179,25 @@ get_random_letters(){
     return 0
 }
 
+is_jpegopt_quality_supported(){
+	extract_from_manual=$(man pdftocairo | grep JPEG\ quality)
+	echo $extract_from_manual
+	if [[ -n $extract_from_manual ]]; then
+		return 0 # supported (there is a string containing "JPEG quality" in manual)
+	else
+		return 1 # not supported
+	fi
+	}
+
 make_jpeg_from_pdf(){
     local source_pdf=$1
     local jpeg_names_template=$2
-    pdftocairo -jpeg -gray -r $resolution -jpegopt "quality=$quality" "$source_pdf" "$jpeg_names_template"
+	jpegopt="-jpegopt quality=""$quality"
+	is_jpegopt_quality_supported
+	supported=$?
+	echo $supported
+	if [[ $supported -eq 1 ]]; then jpegopt=""; fi
+    pdftocairo -jpeg -gray -r $resolution ${jpegopt} "$source_pdf" "$jpeg_names_template"
 }
 
 reduce_single_file(){
